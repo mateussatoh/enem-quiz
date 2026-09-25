@@ -50,3 +50,16 @@ describe("reconcile", () => {
     expect(reconcile(restored, questions)).toEqual(restored);
   });
 });
+
+describe("reconcile action", () => {
+  it("keeps valid answers and resumes at the first gap after content changes", () => {
+    const s = quizReducer(
+      { step: 3, answers: { 1: 10, 2: 20, 3: 30 } },
+      {
+        type: "reconcile",
+        questions: [questions[0]!, { id: 2, options: [{ id: 22 }] }, questions[2]!],
+      },
+    );
+    expect(s).toEqual({ step: 1, answers: { 1: 10, 3: 30 } });
+  });
+});

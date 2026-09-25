@@ -1,7 +1,7 @@
 "use client";
 
 import type { PublicQuiz } from "@enem-quiz/shared/types";
-import { useCallback, useEffect, useReducer } from "react";
+import { useCallback, useEffect, useReducer, useRef } from "react";
 import { initialQuizState, quizReducer, reconcile, type QuizState } from "./quiz-state";
 
 const storageKey = (slug: string) => `quiz:${slug}:progress`;
@@ -21,6 +21,13 @@ function restore(quiz: PublicQuiz): QuizState {
  */
 export function usePersistedQuiz(quiz: PublicQuiz) {
   const [state, dispatch] = useReducer(quizReducer, quiz, restore);
+
+  // New content (e.g. refetched after marketing edited the quiz): keep what still applies and
+  // resume at the first unanswered question, instead of starting over.
+  const firstQuiz = useRef(quiz);
+  useEffect(() => {
+    if (quiz !== firstQuiz.current) dispatch({ type: "reconcile", questions: quiz.questions });
+  }, [quiz]);
 
   useEffect(() => {
     try {

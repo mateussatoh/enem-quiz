@@ -5,7 +5,7 @@ import type { Lead } from "@enem-quiz/shared/validators";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/common/states";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,7 +13,8 @@ import { isApiError } from "@/lib/http";
 import { fetchQuiz, QUIZ_SLUG, quizKeys, submitQuiz } from "../api";
 import { firstUnanswered } from "../quiz-state";
 import { usePersistedQuiz } from "../use-persisted-quiz";
-import { ContactStep, type ContactFormErrors } from "./contact-step";
+import { ContactStep, type ContactDraft, type ContactFormErrors } from "./contact-step";
+import { DuplicateNotice } from "./duplicate-notice";
 import { QuestionStep } from "./question-step";
 import { QuizHeader } from "./quiz-header";
 
@@ -55,6 +56,13 @@ function QuizRunner({
   const { state, dispatch, clear } = usePersistedQuiz(quiz);
   const [direction, setDirection] = useState<1 | -1>(1);
   const [serverErrors, setServerErrors] = useState<ContactFormErrors>();
+  const [draft, setDraft] = useState<ContactDraft>();
+  const [duplicateMessage, setDuplicateMessage] = useState<string | null>(null);
+  const dismissServerError = useCallback(
+    (field: keyof ContactFormErrors) =>
+      setServerErrors((errors) => (errors?.[field] ? { ...errors, [field]: undefined } : errors)),
+    [],
+  );
   const advanceTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => () => clearTimeout(advanceTimer.current), []);
@@ -87,13 +95,12 @@ function QuizRunner({
           }
           return toast.error(error.message);
         case "DUPLICATE_LEAD":
-          setServerErrors({ email: error.message });
-          return;
+          return setDuplicateMessage(error.message);
         case "INCOMPLETE_ANSWERS":
         case "INVALID_OPTION":
-          // Content changed while the student was answering: reload it and start over.
-          toast.error(error.message);
-          dispatch({ type: "reset" });
+          // Content changed while the student was answering: reload it; the persisted state is
+          // reconciled with the new questions and resumes at the first one left unanswered.
+          toast.error("O quiz foi atualizado. Confira as perguntas marcadas e envie de novo");
           return onContentChanged();
         default:
           return toast.error(error.message);
@@ -104,7 +111,6 @@ function QuizRunner({
   const total = quiz.questions.length;
   const onContact = state.step >= total;
   const question = quiz.questions[Math.min(state.step, total - 1)]!;
-  const answeredCount = Object.keys(state.answers).length;
 
   const go = (step: number) => {
     clearTimeout(advanceTimer.current);
@@ -133,7 +139,7 @@ function QuizRunner({
   return (
     <div className="flex min-h-dvh flex-col">
       <QuizHeader
-        current={onContact ? total : answeredCount}
+        current={onContact ? total : state.step}
         total={total}
         label={onContact ? "Quase lá" : `Pergunta ${state.step + 1} de ${total}`}
         onBack={state.step > 0 && !submission.isPending ? () => go(state.step - 1) : undefined}
@@ -141,7 +147,7 @@ function QuizRunner({
       <main className="mx-auto w-full max-w-2xl flex-1 overflow-x-clip px-5 pt-8 pb-16 sm:pt-14">
         <AnimatePresence mode="wait" initial={false} custom={direction}>
           <motion.div
-            key={onContact ? "contact" : question.id}
+            key={onContact ? (duplicateMessage ? "duplicate" : "contact") : question.id}
             custom={direction}
             variants={{
               enter: (d: number) => ({ opacity: 0, x: d * 32 }),
@@ -153,10 +159,22 @@ function QuizRunner({
             exit="exit"
             transition={{ duration: 0.22, ease: "easeOut" }}
           >
-            {onContact ? (
+            {onContact && duplicateMessage ? (
+              <DuplicateNotice
+                message={duplicateMessage}
+                onUseAnotherEmail={() => setDuplicateMessage(null)}
+                onGoHome={() => {
+                  clear();
+                  router.push("/");
+                }}
+              />
+            ) : onContact ? (
               <ContactStep
                 submitting={submission.isPending}
                 serverErrors={serverErrors}
+                onFieldEdit={dismissServerError}
+                draft={draft}
+                onDraftChange={setDraft}
                 onSubmit={(lead, website) => {
                   setServerErrors(undefined);
                   submission.mutate({ lead, website });

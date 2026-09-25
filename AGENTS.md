@@ -10,7 +10,10 @@ Guia curto para quem (pessoa ou agente) for mexer neste repositório.
   - `service.ts`: única porta de acesso ao banco do módulo
   - `routes.ts`: fino, valida, chama service, serializa
   - `serialize.ts`: whitelist de campos, nunca devolve linha crua do banco
-- `packages/web`: Next.js. Fala com a API apenas via HTTP (`/api/*`). A única exceção é `app/api/[[...route]]/route.ts`, que monta o app Hono.
+- `packages/web`: Next.js. Fala com a API apenas pelo contrato REST (`/api/*`). Exceções, liberadas no ESLint:
+  - `app/api/[[...route]]/route.ts`: monta o app Hono
+  - `lib/server-api.ts`: Server Components chamam a API em processo (`app.request`), sem acessar o banco
+  - `lib/session.ts`: checagem de sessão das páginas do admin
 
 ## Regras
 
@@ -23,4 +26,4 @@ Guia curto para quem (pessoa ou agente) for mexer neste repositório.
 
 ## Comandos
 
-`pnpm dev`, `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm db:generate`, `pnpm db:migrate`, `pnpm db:seed`, `pnpm test:e2e`.
+`pnpm dev`, `pnpm dev:api`, `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm db:generate`, `pnpm db:migrate`, `pnpm db:seed`, `pnpm test:e2e`.

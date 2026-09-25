@@ -15,6 +15,7 @@ export type QuizAction =
   | { type: "back" }
   | { type: "goTo"; step: number }
   | { type: "restore"; state: QuizState }
+  | { type: "reconcile"; questions: ReconcileQuestions }
   | { type: "reset" };
 
 export const initialQuizState: QuizState = { step: 0, answers: {} };
@@ -31,6 +32,8 @@ export function quizReducer(state: QuizState, action: QuizAction): QuizState {
       return { ...state, step: Math.max(action.step, 0) };
     case "restore":
       return action.state;
+    case "reconcile":
+      return reconcile(state, action.questions);
     case "reset":
       return initialQuizState;
   }
@@ -45,10 +48,9 @@ export function firstUnanswered(questionIds: number[], answers: QuizState["answe
  * Keeps a restored state consistent with the quiz currently served: drops answers to questions
  * or options that no longer exist and never lands past the first gap.
  */
-export function reconcile(
-  state: QuizState,
-  questions: { id: number; options: { id: number }[] }[],
-): QuizState {
+type ReconcileQuestions = { id: number; options: { id: number }[] }[];
+
+export function reconcile(state: QuizState, questions: ReconcileQuestions): QuizState {
   const answers: QuizState["answers"] = {};
   for (const q of questions) {
     const optionId = state.answers[q.id];

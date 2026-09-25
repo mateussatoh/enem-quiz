@@ -55,8 +55,13 @@ export default tseslint.config(
     },
   },
   {
-    // The route that mounts the Hono app, and the server-side session check for admin pages.
-    files: ["packages/web/src/app/api/**/route.ts", "packages/web/src/lib/session.ts"],
+    // The route that mounts the Hono app, the server-side session check for admin pages and
+    // in-process API calls from Server Components (still through the REST contract).
+    files: [
+      "packages/web/src/app/api/**/route.ts",
+      "packages/web/src/lib/session.ts",
+      "packages/web/src/lib/server-api.ts",
+    ],
     rules: { "no-restricted-imports": "off" },
   },
   {

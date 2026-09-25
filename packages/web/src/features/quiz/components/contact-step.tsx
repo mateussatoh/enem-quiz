@@ -4,6 +4,7 @@ import { formatPhone } from "@enem-quiz/shared/utils";
 import { leadSchema, type Lead, type LeadInput } from "@enem-quiz/shared/validators";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LockKeyhole } from "lucide-react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -11,12 +12,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export type ContactFormErrors = Partial<Record<keyof LeadInput, string>>;
+export type ContactDraft = Pick<LeadInput, "name" | "email" | "phone">;
 
 type Props = {
   submitting: boolean;
   onSubmit: (lead: Lead, website: string) => void;
-  /** Server-side field errors to surface inline (e.g. duplicated e-mail). */
+  /** Server-side field errors to surface inline (e.g. invalid on the server). */
   serverErrors?: ContactFormErrors;
+  /** Called when the student edits a field, so its server error can be dismissed. */
+  onFieldEdit?: (field: keyof LeadInput) => void;
+  /** What was typed before leaving the step (e.g. going back to review an answer). */
+  draft?: ContactDraft;
+  onDraftChange?: (draft: ContactDraft) => void;
 };
 
 // The honeypot travels with the form but is validated (and rejected) by the server only.
@@ -24,12 +31,32 @@ const contactFormSchema = leadSchema.extend({ website: z.string() });
 type FormInput = z.input<typeof contactFormSchema>;
 type FormOutput = z.output<typeof contactFormSchema>;
 
-export function ContactStep({ submitting, onSubmit, serverErrors }: Props) {
+export function ContactStep({
+  submitting,
+  onSubmit,
+  serverErrors,
+  onFieldEdit,
+  draft,
+  onDraftChange,
+}: Props) {
   const form = useForm<FormInput, unknown, FormOutput>({
     resolver: zodResolver(contactFormSchema),
-    defaultValues: { name: "", email: "", phone: "", website: "" },
+    defaultValues: { name: "", email: "", phone: "", ...draft, website: "" },
     mode: "onTouched",
   });
+
+  const { subscribe } = form;
+  useEffect(
+    () =>
+      subscribe({
+        formState: { values: true },
+        callback: ({ values: { name, email, phone }, name: field }) => {
+          onDraftChange?.({ name, email, phone });
+          if (field === "name" || field === "email" || field === "phone") onFieldEdit?.(field);
+        },
+      }),
+    [subscribe, onDraftChange, onFieldEdit],
+  );
   const { errors } = form.formState;
   const errorFor = (field: keyof LeadInput) => errors[field]?.message ?? serverErrors?.[field];
 

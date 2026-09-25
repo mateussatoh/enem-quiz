@@ -2,18 +2,46 @@ import { ArrowRight, Clock, ListChecks, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/common/logo";
 import { Button } from "@/components/ui/button";
+import { QUIZ_SLUG } from "@/features/quiz/api";
+import { getPublicQuiz } from "@/lib/server-api";
 
-// Static on purpose: it is the ad landing page, so it ships as prerendered HTML for a fast first
-// paint on phones. Quiz content is fetched from the API only once the student starts.
-export const dynamic = "force-static";
+// Prerendered HTML for a fast first paint on phones (it is the ad landing page), regenerated
+// every minute so marketing's edits to title, subtitle and questions show up without a deploy.
+export const revalidate = 60;
 
-const highlights = [
-  { icon: Clock, text: "Leva cerca de 2 minutos" },
-  { icon: ListChecks, text: "10 perguntas sobre sua rotina" },
-  { icon: Sparkles, text: "Diagnóstico na hora" },
-];
+// Used only if the API is unreachable while rendering, so the page never breaks.
+const FALLBACK = {
+  title: "Qual é a sua chance real de passar no ENEM?",
+  subtitle:
+    "Responda perguntas rápidas sobre a sua preparação e receba um diagnóstico personalizado.",
+  questionCount: 10,
+};
 
-export default function LandingPage() {
+/** Highlights the word "real" in the title when marketing keeps it. */
+function Title({ text }: { text: string }) {
+  const parts = text.split(/(\breal\b)/i);
+  return parts.map((part, i) =>
+    /^real$/i.test(part) ? (
+      <span key={i} className="text-brand">
+        {part}
+      </span>
+    ) : (
+      part
+    ),
+  );
+}
+
+export default async function LandingPage() {
+  const quiz = await getPublicQuiz(QUIZ_SLUG);
+  const title = quiz?.title ?? FALLBACK.title;
+  const subtitle = quiz?.subtitle ?? FALLBACK.subtitle;
+  const questionCount = quiz?.questions.length ?? FALLBACK.questionCount;
+  const highlights = [
+    { icon: Clock, text: "Leva cerca de 2 minutos" },
+    { icon: ListChecks, text: `${questionCount} perguntas sobre sua rotina` },
+    { icon: Sparkles, text: "Diagnóstico na hora" },
+  ];
+
   return (
     <main className="relative flex min-h-dvh flex-col overflow-hidden">
       <div
@@ -35,12 +63,9 @@ export default function LandingPage() {
           Diagnóstico gratuito de preparação
         </p>
         <h1 className="max-w-3xl font-serif text-[2.6rem] leading-[1.05] tracking-tight text-ink sm:text-6xl">
-          Qual é a sua chance <span className="text-brand">real</span> de passar no ENEM?
+          <Title text={title} />
         </h1>
-        <p className="mt-5 max-w-xl text-lg text-ink-soft">
-          Responda 10 perguntas rápidas sobre a sua preparação e descubra em que ponto você está, e
-          o que mais faz diferença daqui até a prova.
-        </p>
+        <p className="mt-5 max-w-xl text-lg text-ink-soft">{subtitle}</p>
 
         <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center">
           <Button asChild variant="cta" size="xl" className="w-full sm:w-auto">
