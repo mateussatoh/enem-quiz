@@ -9,4 +9,5 @@ export function useTestEnv() {
   process.env.SESSION_SECRET ??= "test-secret-test-secret-test-secret-000";
   process.env.ADMIN_EMAIL = "admin@test.dev";
   process.env.ADMIN_PASSWORD = "senha-de-teste";
+  process.env.SUBMISSION_RATE_LIMIT = "5";
 }

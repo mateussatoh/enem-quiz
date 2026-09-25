@@ -2,11 +2,12 @@ import { BANDS, type BandKey } from "@enem-quiz/shared/domain";
 import type { Lead, LeadFilters, LeadListQuery } from "@enem-quiz/shared/validators";
 import { and, asc, count, desc, eq, gte, ilike, or, sql, type SQL } from "drizzle-orm";
 import { db } from "../../core/db";
+import { env } from "../../core/env";
 import type { ScoredAnswer } from "./scoring";
 import { leadAnswers, leads } from "./schema";
 
 export const DUPLICATE_WINDOW_HOURS = 24;
-export const RATE_LIMIT = { windowMinutes: 10, maxSubmissions: 5 } as const;
+export const RATE_LIMIT_WINDOW_MINUTES = 10;
 export const EXPORT_LIMIT = 10_000;
 
 const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000);
@@ -39,10 +40,10 @@ export async function createLead(input: CreateLeadInput): Promise<CreateLeadResu
         .where(
           and(
             eq(leads.ipHash, input.ipHash),
-            gte(leads.createdAt, minutesAgo(RATE_LIMIT.windowMinutes)),
+            gte(leads.createdAt, minutesAgo(RATE_LIMIT_WINDOW_MINUTES)),
           ),
         );
-      if ((recent?.n ?? 0) >= RATE_LIMIT.maxSubmissions)
+      if ((recent?.n ?? 0) >= env().SUBMISSION_RATE_LIMIT)
         return { ok: false, reason: "RATE_LIMITED" };
     }
 

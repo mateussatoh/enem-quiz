@@ -3,6 +3,8 @@ import { z } from "zod";
 const envSchema = z.object({
   DATABASE_URL: z.url(),
   SESSION_SECRET: z.string().min(32, { error: "SESSION_SECRET precisa ter 32+ caracteres" }),
+  /** Max submissions per IP in a 10 minute window. */
+  SUBMISSION_RATE_LIMIT: z.coerce.number().int().positive().default(5),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 });
 
