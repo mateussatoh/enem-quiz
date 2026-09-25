@@ -1,5 +1,5 @@
 import { submissionSchema } from "@enem-quiz/shared/validators";
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { z } from "zod";
 import { runInBackground } from "../../core/background";
 import { hashIp } from "../../core/crypto";
@@ -13,9 +13,29 @@ import { getActiveQuizBySlug } from "../quiz/service";
 import { renderResultEmail } from "./result-email";
 import { scoreSubmission } from "./scoring";
 import { toSubmissionResult } from "./serialize";
-import { createLead, getLeadWithAnswers, DUPLICATE_WINDOW_HOURS } from "./service";
+import {
+  claimResultEmail,
+  createLead,
+  DUPLICATE_WINDOW_HOURS,
+  getLeadWithAnswers,
+} from "./service";
 
 const resultParam = z.object({ id: z.uuid() });
+
+/** Sends the diagnostic e-mail after the response, at most once per throttle window. */
+function emailResult(c: Context, leadId: string, baseUrl: string) {
+  runInBackground(c, "email.diagnostic_result", async () => {
+    if (!(await claimResultEmail(leadId))) return;
+    const lead = await getLeadWithAnswers(leadId);
+    if (!lead) return;
+    const result = toSubmissionResult(lead);
+    await sendEmail({
+      to: lead.email,
+      tag: "diagnostic-result",
+      ...renderResultEmail(result, `${baseUrl}/resultado/${result.resultId}`),
+    });
+  });
+}
 
 export const leadRoutes = new Hono()
   .post(
@@ -55,35 +75,34 @@ export const leadRoutes = new Hono()
         ipHash: ip ? hashIp(ip, env().SESSION_SECRET) : null,
       });
 
+      const baseUrl = env().APP_URL ?? new URL(c.req.url).origin;
+
       if (!created.ok) {
         logEvent("warn", `submission.${created.reason.toLowerCase()}`, { quiz: quiz.slug });
-        return created.reason === "RATE_LIMITED"
-          ? fail(
-              c,
-              429,
-              "RATE_LIMITED",
-              "Muitos envios em pouco tempo. Tente novamente em alguns minutos",
-            )
-          : fail(
-              c,
-              409,
-              "DUPLICATE_LEAD",
-              `Já recebemos um diagnóstico com este e-mail nas últimas ${DUPLICATE_WINDOW_HOURS} horas`,
-            );
+        if (created.reason === "RATE_LIMITED") {
+          return fail(
+            c,
+            429,
+            "RATE_LIMITED",
+            "Muitos envios em pouco tempo. Tente novamente em alguns minutos",
+          );
+        }
+        // Never reveal the earlier result in the response (anyone can type any e-mail); send it
+        // to the inbox that owns the address instead, so the student still has a way forward.
+        emailResult(c, created.existingLeadId, baseUrl);
+        return fail(
+          c,
+          409,
+          "DUPLICATE_LEAD",
+          `Você já fez o diagnóstico com este e-mail nas últimas ${DUPLICATE_WINDOW_HOURS} horas. Enviamos o resultado para a sua caixa de entrada`,
+        );
       }
 
       logEvent("info", "submission.created", { leadId: created.lead.id, score: scored.score });
       const result = toSubmissionResult((await getLeadWithAnswers(created.lead.id))!);
 
       // The student sees the result right away; the e-mail copy goes out after the response.
-      const resultUrl = `${env().APP_URL ?? new URL(c.req.url).origin}/resultado/${result.resultId}`;
-      runInBackground(c, "email.diagnostic_result", () =>
-        sendEmail({
-          to: submission.lead.email,
-          tag: "diagnostic-result",
-          ...renderResultEmail(result, resultUrl),
-        }),
-      );
+      emailResult(c, result.resultId, baseUrl);
 
       c.header("Location", `/api/results/${result.resultId}`);
       return c.json(result, 201);

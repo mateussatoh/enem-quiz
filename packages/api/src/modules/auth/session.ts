@@ -1,7 +1,8 @@
 import type { AdminSession } from "@enem-quiz/shared/types";
 import { jwtVerify, SignJWT } from "jose";
 
-// Standalone on purpose (no db/env imports): the web proxy imports it to gate admin pages.
+// Standalone on purpose (no db/env imports): the web app imports it (lib/session.ts) to gate
+// admin pages on the server before rendering.
 
 export const SESSION_COOKIE = "quiz_admin_session";
 export const SESSION_TTL_SECONDS = 60 * 60 * 8;

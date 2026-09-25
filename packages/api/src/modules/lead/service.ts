@@ -1,6 +1,6 @@
 import { BANDS, type BandKey } from "@enem-quiz/shared/domain";
 import type { Lead, LeadFilters, LeadListQuery } from "@enem-quiz/shared/validators";
-import { and, asc, count, desc, eq, gte, ilike, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, isNull, lt, or, sql, type SQL } from "drizzle-orm";
 import { db } from "../../core/db";
 import { env } from "../../core/env";
 import type { ScoredAnswer } from "./scoring";
@@ -23,7 +23,8 @@ export type CreateLeadInput = {
 
 export type CreateLeadResult =
   | { ok: true; lead: typeof leads.$inferSelect }
-  | { ok: false; reason: "DUPLICATE_LEAD" | "RATE_LIMITED" };
+  | { ok: false; reason: "DUPLICATE_LEAD"; existingLeadId: string }
+  | { ok: false; reason: "RATE_LIMITED" };
 
 /**
  * Persists the lead and its answer snapshot atomically. An advisory lock on the e-mail makes
@@ -57,8 +58,10 @@ export async function createLead(input: CreateLeadInput): Promise<CreateLeadResu
           gte(leads.createdAt, minutesAgo(DUPLICATE_WINDOW_HOURS * 60)),
         ),
       )
+      .orderBy(desc(leads.createdAt))
       .limit(1);
-    if (duplicate.length) return { ok: false, reason: "DUPLICATE_LEAD" };
+    if (duplicate[0])
+      return { ok: false, reason: "DUPLICATE_LEAD", existingLeadId: duplicate[0].id };
 
     const [lead] = await tx
       .insert(leads)
@@ -74,6 +77,29 @@ export async function createLead(input: CreateLeadInput): Promise<CreateLeadResu
     await tx.insert(leadAnswers).values(input.answers.map((a) => ({ leadId: lead!.id, ...a })));
     return { ok: true, lead: lead! };
   });
+}
+
+export const RESULT_EMAIL_THROTTLE_MINUTES = 60;
+
+/**
+ * Atomically reserves the right to e-mail this lead's diagnostic: true at most once per
+ * throttle window, so duplicate submissions can re-send the result without spamming an inbox.
+ */
+export async function claimResultEmail(leadId: string): Promise<boolean> {
+  const claimed = await db()
+    .update(leads)
+    .set({ resultEmailSentAt: sql`now()` })
+    .where(
+      and(
+        eq(leads.id, leadId),
+        or(
+          isNull(leads.resultEmailSentAt),
+          lt(leads.resultEmailSentAt, minutesAgo(RESULT_EMAIL_THROTTLE_MINUTES)),
+        ),
+      ),
+    )
+    .returning({ id: leads.id });
+  return claimed.length > 0;
 }
 
 export async function getLeadWithAnswers(id: string) {
@@ -137,7 +163,10 @@ export async function getLeadStats() {
     db()
       .select({
         total: count(),
-        last7Days: count(sql`case when ${leads.createdAt} >= now() - interval '7 days' then 1 end`),
+        // Same Brasília calendar as byDay: today plus the 6 previous days.
+        last7Days: count(
+          sql`case when ${localDay} > (now() at time zone 'America/Sao_Paulo')::date - 7 then 1 end`,
+        ),
         averageScore: sql<string | null>`round(avg(${leads.score}))`,
       })
       .from(leads),

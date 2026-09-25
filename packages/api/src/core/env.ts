@@ -3,8 +3,11 @@ import { z } from "zod";
 const envSchema = z.object({
   DATABASE_URL: z.url(),
   SESSION_SECRET: z.string().min(32, { error: "SESSION_SECRET precisa ter 32+ caracteres" }),
-  /** Max submissions per IP in a 10 minute window. */
-  SUBMISSION_RATE_LIMIT: z.coerce.number().int().positive().default(5),
+  /**
+   * Max new leads per IP in a 10 minute window. 20 stops scripted abuse while leaving room for
+   * a school or office sharing one public IP.
+   */
+  SUBMISSION_RATE_LIMIT: z.coerce.number().int().positive().default(20),
   /** Optional: without it, result e-mails are skipped (logged), so local setup needs no account. */
   RESEND_API_KEY: z
     .string()

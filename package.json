@@ -18,7 +18,8 @@
     "db:migrate": "pnpm -F @enem-quiz/api db:migrate",
     "db:seed": "pnpm -F @enem-quiz/api db:seed",
     "test:e2e": "playwright test",
-    "db:seed:demo": "pnpm -F @enem-quiz/api db:seed:demo"
+    "db:seed:demo": "pnpm -F @enem-quiz/api db:seed:demo",
+    "dev:api": "pnpm -F @enem-quiz/api dev"
   },
   "devDependencies": {
     "@eslint/js": "catalog:",

@@ -7,7 +7,10 @@ const email = vi.hoisted(() => ({
   })),
 }));
 vi.mock("../../core/email", () => ({ sendEmail: email.send }));
+import { eq } from "drizzle-orm";
 import { app } from "../../app";
+import { db } from "../../core/db";
+import { leads } from "../../db/schema";
 import { answersFor, fetchQuiz, json, post, resetLeads, validLead } from "../../../test/helpers";
 
 const url = "/api/quizzes/enem/submissions";
@@ -100,8 +103,28 @@ describe("POST /api/quizzes/:slug/submissions", () => {
     expect((await post(url, { answers, lead: validLead })).status).toBe(201);
     const dup = await post(url, { answers, lead: { ...validLead, email: "ANA@email.com" } });
     expect(dup.status).toBe(409);
+    const { error } = await json(dup);
+    expect(error.code).toBe("DUPLICATE_LEAD");
+    expect(error.message).toContain("Enviamos o resultado para a sua caixa de entrada");
+    // Sent less than an hour ago: the duplicate does not e-mail the same inbox again.
+    await new Promise((r) => setTimeout(r, 100));
     expect(email.send).toHaveBeenCalledOnce();
-    expect((await json(dup)).error.code).toBe("DUPLICATE_LEAD");
+  });
+
+  it("re-sends the earlier result to the inbox on a duplicate once the throttle passed", async () => {
+    const quiz = await fetchQuiz();
+    const first = await json(post(url, { answers: answersFor(quiz), lead: validLead }));
+    await vi.waitFor(() => expect(email.send).toHaveBeenCalledOnce());
+    await db()
+      .update(leads)
+      .set({ resultEmailSentAt: new Date(Date.now() - 2 * 3_600_000) })
+      .where(eq(leads.id, first.resultId));
+
+    const dup = await post(url, { answers: answersFor(quiz, () => 1), lead: validLead });
+    expect(dup.status).toBe(409);
+    await vi.waitFor(() => expect(email.send).toHaveBeenCalledTimes(2));
+    // The re-send carries the original diagnostic, not the new answers.
+    expect(email.send.mock.calls[1]![0].subject).toContain(`${first.score}/100`);
   });
 
   it("creates only one lead for concurrent double submits", async () => {

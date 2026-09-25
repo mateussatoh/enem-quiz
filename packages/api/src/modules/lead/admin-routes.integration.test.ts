@@ -14,7 +14,7 @@ beforeAll(async () => {
       lead: { name, email, phone: "11987654321" },
     });
   await submit("Bruno Lima", "bruno@email.com", 0); // 8 pts, starting
-  await submit("Carla Dias", "carla@email.com", 3); // 100 pts, final_stretch
+  await submit("Carla Dias", "carla@email.com", 3); // 95 pts (4th option, or the last one), final_stretch
   await submit("Daniel 100%_Lima", "daniel@outro.com", 3);
   cookie = await loginCookie();
 });

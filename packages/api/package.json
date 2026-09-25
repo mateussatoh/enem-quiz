@@ -12,10 +12,13 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
-    "db:seed:demo": "tsx src/db/seed-demo.ts"
+    "db:seed:demo": "tsx src/db/seed-demo.ts",
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts"
   },
   "dependencies": {
     "@enem-quiz/shared": "workspace:*",
+    "@hono/node-server": "^2.1.1",
     "drizzle-orm": "catalog:",
     "hono": "catalog:",
     "jose": "catalog:",

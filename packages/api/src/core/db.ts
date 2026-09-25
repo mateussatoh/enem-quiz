@@ -5,7 +5,7 @@ import { env } from "./env";
 
 function createDb(url: string) {
   // prepare:false keeps us compatible with transaction poolers (Neon/pgbouncer) in serverless.
-  const client = postgres(url, { max: 5, prepare: false });
+  const client = postgres(url, { max: 5, prepare: false, onnotice: () => {} });
   return drizzle(client, { schema, casing: "snake_case" });
 }
 

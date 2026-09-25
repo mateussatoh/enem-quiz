@@ -31,6 +31,8 @@ export const leads = pgTable(
     score: smallint().notNull(),
     band: bandKey().notNull(),
     ipHash: text(),
+    /** Last time the diagnostic e-mail went out; throttles re-sends on duplicate submissions. */
+    resultEmailSentAt: timestamp({ withTimezone: true }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -38,6 +40,9 @@ export const leads = pgTable(
     index().on(t.band, t.createdAt.desc()),
     index().on(t.email, t.createdAt.desc()),
     index().on(t.ipHash, t.createdAt.desc()),
+    // Trigram indexes keep the admin "contains" search (ILIKE '%q%') off sequential scans.
+    index("leads_name_trgm_idx").using("gin", t.name.op("gin_trgm_ops")),
+    index("leads_email_trgm_idx").using("gin", t.email.op("gin_trgm_ops")),
     check("leads_score_range", sql`${t.score} between 0 and 100`),
   ],
 );

@@ -22,6 +22,7 @@ describe("csv", () => {
         score: 72,
         band: "on_track",
         ipHash: null,
+        resultEmailSentAt: null,
         createdAt: new Date("2026-09-25T15:00:00Z"),
       },
     ]);

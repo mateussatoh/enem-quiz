@@ -8,6 +8,13 @@
       "when": 1790349339915,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790357096320,
+      "tag": "0001_lead_email_tracking_and_search",
+      "breakpoints": true
     }
   ]
 }
