@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/common/states";
 import { Skeleton } from "@/components/ui/skeleton";
-import { identifyLead, track } from "@/lib/analytics";
+import { beginQuizRun, identifyLead, track } from "@/lib/analytics";
 import { isApiError } from "@/lib/http";
 import { fetchQuiz, QUIZ_SLUG, quizKeys, submitQuiz } from "../api";
 import { firstUnanswered } from "../quiz-state";
@@ -62,6 +62,7 @@ function QuizRunner({
 
   useEffect(() => {
     const answered = Object.keys(state.answers).length;
+    if (answered === 0) beginQuizRun();
     track("quiz_viewed", { resumed: answered > 0, answered });
     // Once per mount: `state` here is the restored progress.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -139,12 +140,15 @@ function QuizRunner({
 
   const select = (optionId: number) => {
     const previous = state.answers[question.id];
-    track("question_answered", {
-      position: question.position,
-      question_id: question.id,
-      option_position: question.options.findIndex((o) => o.id === optionId) + 1,
-      changed: previous !== undefined && previous !== optionId,
-    });
+    // Re-tapping the same option (or a double tap before auto-advance) is not a new answer.
+    if (previous !== optionId) {
+      track("question_answered", {
+        position: question.position,
+        question_id: question.id,
+        option_position: question.options.findIndex((o) => o.id === optionId) + 1,
+        changed: previous !== undefined,
+      });
+    }
     dispatch({ type: "answer", questionId: question.id, optionId });
     clearTimeout(advanceTimer.current);
     advanceTimer.current = setTimeout(() => {
