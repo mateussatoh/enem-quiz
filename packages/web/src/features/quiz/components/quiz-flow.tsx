@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/common/states";
 import { Skeleton } from "@/components/ui/skeleton";
+import { identifyLead, track } from "@/lib/analytics";
 import { isApiError } from "@/lib/http";
 import { fetchQuiz, QUIZ_SLUG, quizKeys, submitQuiz } from "../api";
 import { firstUnanswered } from "../quiz-state";
@@ -59,6 +60,18 @@ function QuizRunner({
 
   useEffect(() => () => clearTimeout(advanceTimer.current), []);
 
+  useEffect(() => {
+    const answered = Object.keys(state.answers).length;
+    track("quiz_viewed", { resumed: answered > 0, answered });
+    // Once per mount: `state` here is the restored progress.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const onContactStep = state.step >= quiz.questions.length;
+  useEffect(() => {
+    if (onContactStep) track("contact_viewed", {});
+  }, [onContactStep]);
+
   const submission = useMutation({
     mutationFn: ({ lead, website }: { lead: Lead; website: string }) =>
       submitQuiz(QUIZ_SLUG, {
@@ -70,11 +83,14 @@ function QuizRunner({
         })),
       }),
     onSuccess: (result) => {
+      identifyLead(result.resultId, { score: result.score, band: result.band.key });
+      track("lead_submitted", { score: result.score, band: result.band.key });
       queryClient.setQueryData(quizKeys.result(result.resultId), result);
       clear();
       router.replace(`/resultado/${result.resultId}`);
     },
     onError: (error) => {
+      track("lead_submit_failed", { code: isApiError(error) ? error.code : "UNKNOWN" });
       if (!isApiError(error)) return toast.error("Erro inesperado. Tente novamente");
       switch (error.code) {
         case "VALIDATION":
@@ -122,6 +138,13 @@ function QuizRunner({
   };
 
   const select = (optionId: number) => {
+    const previous = state.answers[question.id];
+    track("question_answered", {
+      position: question.position,
+      question_id: question.id,
+      option_position: question.options.findIndex((o) => o.id === optionId) + 1,
+      changed: previous !== undefined && previous !== optionId,
+    });
     dispatch({ type: "answer", questionId: question.id, optionId });
     clearTimeout(advanceTimer.current);
     advanceTimer.current = setTimeout(() => {
@@ -136,7 +159,14 @@ function QuizRunner({
         current={onContact ? total : answeredCount}
         total={total}
         label={onContact ? "Quase lá" : `Pergunta ${state.step + 1} de ${total}`}
-        onBack={state.step > 0 && !submission.isPending ? () => go(state.step - 1) : undefined}
+        onBack={
+          state.step > 0 && !submission.isPending
+            ? () => {
+                track("question_back", { from_position: state.step + 1 });
+                go(state.step - 1);
+              }
+            : undefined
+        }
       />
       <main className="mx-auto w-full max-w-2xl flex-1 overflow-x-clip px-5 pt-8 pb-16 sm:pt-14">
         <AnimatePresence mode="wait" initial={false} custom={direction}>

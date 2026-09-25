@@ -37,11 +37,16 @@ pnpm dev                    # http://localhost:3000
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | só no seed | Credenciais criadas pelo `pnpm db:seed` (padrão acima) |
 | `SUBMISSION_RATE_LIMIT` | não | Envios por IP a cada 10 min. Padrão 5; o `.env.example` usa 100 para desenvolvimento |
 | `TEST_DATABASE_URL` | só nos testes | Banco isolado para os testes de integração da API |
+| `RESEND_API_KEY` | não | Liga o e-mail do diagnóstico. Sem ela, o envio vira um log e o fluxo segue igual |
+| `EMAIL_FROM` | não | Remetente. O padrão `onboarding@resend.dev` só entrega para o dono da conta Resend |
+| `APP_URL` | não | URL pública para os links do e-mail. Padrão: origem da requisição |
+| `NEXT_PUBLIC_POSTHOG_KEY` | não | Liga o analytics do funil. Sem ela, nenhum evento é enviado |
+| `NEXT_PUBLIC_POSTHOG_HOST` | não | Região do PostHog (padrão `https://us.i.posthog.com`) |
 
 ### Testes
 
 ```bash
-pnpm test          # unitários + integração da API contra o Postgres do docker (73 testes)
+pnpm test          # unitários + integração da API contra o Postgres do docker (76 testes)
 pnpm test:e2e      # Playwright: fluxo completo, do quiz ao admin, em mobile e desktop
 pnpm typecheck && pnpm lint
 ```
@@ -119,6 +124,18 @@ admin_users(email, password_hash)
   - estados de carregando, vazio e erro em todas as telas;
   - filtros do admin guardados na URL, então dá para compartilhar ou recarregar a lista filtrada;
   - tabela no desktop e cards no celular.
+- **E-mail com o diagnóstico (Resend).** Depois do envio, o lead recebe a pontuação, a faixa, as respostas e o link do resultado. O e-mail sai depois da resposta HTTP: a API pede ao host para manter a função viva (`waitUntil`), e o Next fornece isso com `after()`. Assim o aluno não espera o e-mail, e uma falha de entrega nunca derruba o envio. O template é HTML em tabela com estilos inline, que renderiza igual no Gmail, no Outlook e no celular, e escapa o conteúdo digitado pelo usuário.
+- **Funil no PostHog.** Eventos tipados em um catálogo único (`lib/analytics.ts`):
+  - `quiz_viewed`
+  - `question_answered` (posição e se trocou a resposta)
+  - `question_back`
+  - `contact_viewed`
+  - `lead_submitted`
+  - `lead_submit_failed` (com o código do erro)
+  - `result_viewed`
+
+  Isso mostra onde o aluno abandona e quais erros travam a conversão. Os eventos passam por `/ingest` no próprio domínio (reverse proxy), para não serem bloqueados por ad blockers. Por causa da LGPD, nada de e-mail ou telefone vai para o PostHog: o lead é identificado só pelo id do resultado, e o uso do admin não entra no funil.
+- **Integrações opcionais.** Resend e PostHog só ligam com chave configurada. Sem chave, viram no-op e quem avaliar roda tudo local sem criar conta em nenhum serviço.
 - **Identidade da Plataforma Assaad:** logo (SVG vetorial) e favicon vêm do site oficial, para o protótipo já parecer produto da casa. Como a página captura dados pessoais, todas as telas públicas e o login exibem o aviso "Protótipo desenvolvido para o processo seletivo da Assaad Educação. Não é um canal oficial", e o site inteiro sai do Google com `noindex` e `robots.txt`.
 - **Design:** tokens semânticos (tinta, superfícies, marca e uma cor por faixa) em Tailwind v4, títulos com serifa editorial e primitivos no estilo shadcn/ui.
 
@@ -128,6 +145,7 @@ admin_users(email, password_hash)
 - **Rate limit de login** e bloqueio progressivo por tentativas. O rate limit atual cobre só o envio do quiz.
 - **Rate limit num store dedicado** (Upstash ou Redis), com janela deslizante e cobertura de requisições que falham antes de gravar.
 - **Paginação por cursor** na lista de leads para volumes grandes, e exportação CSV em streaming.
-- **Observabilidade:** Sentry, métricas de funil por pergunta (onde o aluno abandona) e analytics de conversão.
+- **Observabilidade:** Sentry, dashboards e alertas no PostHog, e eventos também no servidor (`posthog-node`), para o funil não depender só do navegador.
+- **E-mail:** fila com retry (hoje é uma tentativa só e depois log), domínio próprio verificado, e aviso para o time comercial quando entra um lead da faixa "Reta final".
 - **LGPD:** checkbox de consentimento explícito com versão do termo gravada no lead, e rotina de anonimização.
 - **Infra como código** com SST, e migrations rodando no pipeline de deploy.

@@ -5,12 +5,14 @@ import type { SubmissionResult } from "@enem-quiz/shared/types";
 import { useQuery } from "@tanstack/react-query";
 import { MessageCircle } from "lucide-react";
 import Link from "next/link";
+import { useEffect } from "react";
 import { bandStyles } from "@/components/common/band-badge";
 import { Logo } from "@/components/common/logo";
 import { ErrorState, LoadingState } from "@/components/common/states";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { fetchResult, quizKeys } from "@/features/quiz/api";
+import { track } from "@/lib/analytics";
 import { isApiError } from "@/lib/http";
 import { cn } from "@/lib/utils";
 import { ScoreRing } from "./score-ring";
@@ -49,6 +51,10 @@ export function ResultView({ id }: { id: string }) {
 
 function Result({ result }: { result: SubmissionResult }) {
   const style = bandStyles[result.band.key];
+
+  useEffect(() => {
+    track("result_viewed", { score: result.score, band: result.band.key });
+  }, [result.resultId, result.score, result.band.key]);
 
   return (
     <div className="flex flex-col gap-8 pt-4">
