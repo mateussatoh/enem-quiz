@@ -52,7 +52,7 @@ pnpm dev:api                # opcional: só a API, standalone em http://localhos
 ### Testes
 
 ```bash
-pnpm test          # unitários + integração da API contra o Postgres do docker (81 testes)
+pnpm test          # unitários + integração da API contra o Postgres do docker (82 testes)
 pnpm test:e2e      # Playwright: fluxo completo, do quiz ao admin, em mobile e desktop
 pnpm typecheck && pnpm lint
 ```

@@ -156,6 +156,12 @@ describe("POST /api/quizzes/:slug/submissions", () => {
     expect(res.status).toBe(400);
   });
 
+  it("answers built-in validation errors in Portuguese", async () => {
+    const res = await app.request("/api/results/nao-e-uuid");
+    expect(res.status).toBe(400);
+    expect((await json(res)).error.fields.id).toBe("Formato do UUID inválido");
+  });
+
   it("returns 404 for an unknown result id", async () => {
     const res = await app.request("/api/results/00000000-0000-4000-8000-000000000000");
     expect(res.status).toBe(404);

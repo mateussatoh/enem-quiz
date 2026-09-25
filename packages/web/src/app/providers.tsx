@@ -1,9 +1,12 @@
 "use client";
 
+import { setZodLocalePtBR } from "@enem-quiz/shared/validators";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { Toaster } from "sonner";
 import { isApiError } from "@/lib/http";
+
+setZodLocalePtBR();
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [client] = useState(

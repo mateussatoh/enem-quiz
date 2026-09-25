@@ -1,3 +1,4 @@
+import { setZodLocalePtBR } from "@enem-quiz/shared/validators";
 import { Hono } from "hono";
 import { secureHeaders } from "hono/secure-headers";
 import { fail } from "./core/http";
@@ -14,6 +15,8 @@ import { quizRoutes } from "./modules/quiz/routes";
  * The REST API. Framework agnostic: Next mounts it at app/api/[[...route]], but the same
  * `app.fetch` runs on Node, Lambda or Workers unchanged.
  */
+setZodLocalePtBR();
+
 export const app = new Hono<AppEnv>().basePath("/api");
 
 app.use(secureHeaders());
