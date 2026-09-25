@@ -1,0 +1,23 @@
+{
+  "name": "@enem-quiz/shared",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./domain": "./src/domain/index.ts",
+    "./validators": "./src/validators/index.ts",
+    "./utils": "./src/utils/index.ts",
+    "./types": "./src/types.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
