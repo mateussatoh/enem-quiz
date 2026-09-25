@@ -41,9 +41,10 @@ test("a student completes the quiz and the team sees the lead", async ({ page },
   await page.getByLabel("E-mail").fill("admin@assaad.dev");
   await page.getByLabel("Senha").fill("Assaad@2026");
   await page.getByRole("button", { name: "Entrar" }).click();
-  await expect(page.getByRole("heading", { name: "Visão geral" })).toBeVisible();
+  // Login sends the team member back to the page they asked for.
+  await expect(page).toHaveURL(/\/admin\/leads$/);
+  await expect(page.getByRole("heading", { name: "Leads" })).toBeVisible();
 
-  await page.goto("/admin/leads");
   await page.getByLabel("Buscar por nome ou e-mail").fill(email);
   await expect(page.getByText("1 lead encontrado")).toBeVisible();
   // Desktop renders a table, mobile a card list: click whichever is visible.

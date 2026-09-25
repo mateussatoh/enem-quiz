@@ -53,7 +53,7 @@ pnpm dev:api                # opcional: só a API, standalone em http://localhos
 ### Testes
 
 ```bash
-pnpm test          # unitários + integração da API contra o Postgres do docker (82 testes)
+pnpm test          # unitários + integração da API contra o Postgres do docker (94 testes)
 pnpm test:e2e      # Playwright: fluxo completo, do quiz ao admin, em mobile e desktop
 pnpm typecheck && pnpm lint
 ```
@@ -113,7 +113,7 @@ admin_users(email, password_hash)
 ## Decisões técnicas
 
 - **Next hospedando uma API Hono separada em camada.** O teste pede API separada do frontend. A API é um pacote próprio, com roteamento, middlewares e erros centralizados, testado com `app.request()` sem subir o Next. O Next só a monta num route handler, o que dá um deploy só, mesma origem, sem CORS e com cookie de sessão simples. A mesma API também sobe sozinha com `pnpm dev:api` (Node, porta 4000), sem nada do Next; para deployá-la como serviço independente (container, Lambda), basta usar esse entrypoint.
-- **Next pelo primeiro acesso no celular.** A landing chega pronta em HTML (ISR, regenerada a cada minuto com o conteúdo da API), o que importa num canal de aquisição com tráfego majoritariamente mobile. Quiz e admin são interativos e rodam no navegador. Nenhuma regra de negócio mora no Next.
+- **Next pelo primeiro acesso no celular.** A landing chega pronta em HTML (ISR, regenerada a cada minuto com o conteúdo da API, inclusive o `<title>`; se a API falhar na regeneração, o Next mantém a última versão boa), o que importa num canal de aquisição com tráfego majoritariamente mobile. Quiz e admin são interativos e rodam no navegador. Nenhuma regra de negócio mora no Next.
 - **Pontuação só no servidor.** O cliente envia apenas os ids das alternativas, e os pesos nem chegam ao navegador. O servidor confere se todas as perguntas foram respondidas e se cada alternativa pertence à pergunta (422 quando não), soma os pesos e aplica o limite de 0 a 100.
 - **Proteção contra abuso:**
   - deduplicação por e-mail em 24h (409), sem condição de corrida graças a um advisory lock do Postgres na transação, com teste de dois envios simultâneos. Para o aluno não ficar sem saída, o resultado anterior é reenviado para o e-mail, e nunca devolvido na resposta, já que qualquer um pode digitar qualquer e-mail. O reenvio é limitado a uma vez por hora por lead;
@@ -133,6 +133,7 @@ admin_users(email, password_hash)
   - máscara de telefone (aceita colar com +55) e erros de validação ao lado de cada campo, inclusive as mensagens padrão do zod, em português;
   - estados de carregando, vazio e erro em todas as telas;
   - filtros do admin guardados na URL, então dá para compartilhar ou recarregar a lista filtrada;
+  - o login do admin devolve para a página que foi pedida (com proteção contra open redirect);
   - tabela no desktop e cards no celular.
 - **E-mail com o diagnóstico (Resend).** Depois do envio, o lead recebe a pontuação, a faixa, as respostas e o link do resultado. O e-mail sai depois da resposta HTTP: a API pede ao host para manter a função viva (`waitUntil`), e o Next fornece isso com `after()`. Assim o aluno não espera o e-mail, e uma falha de entrega nunca derruba o envio. O template é HTML em tabela com estilos inline, que renderiza igual no Gmail, no Outlook e no celular, e escapa o conteúdo digitado pelo usuário.
 - **Integração opcional.** O Resend só liga com chave configurada. Sem chave, o envio vira um log e quem avaliar roda tudo local sem criar conta em nenhum serviço.

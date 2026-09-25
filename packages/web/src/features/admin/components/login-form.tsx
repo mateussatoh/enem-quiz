@@ -10,11 +10,14 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { safeAdminNext } from "@/lib/safe-next";
 import { login } from "../api";
 
 export function LoginForm() {
   const router = useRouter();
-  const expired = useSearchParams().get("expirou") === "1";
+  const params = useSearchParams();
+  const expired = params.get("expirou") === "1";
+  const next = safeAdminNext(params.get("next"));
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
@@ -27,7 +30,7 @@ export function LoginForm() {
   const mutation = useMutation({
     mutationFn: login,
     onSuccess: () => {
-      router.replace("/admin");
+      router.replace(next as "/admin");
       router.refresh();
     },
     onError: (error) => form.setError("root", { message: error.message }),

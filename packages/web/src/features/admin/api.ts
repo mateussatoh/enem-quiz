@@ -24,7 +24,8 @@ async function adminApi<T>(path: string, init?: Parameters<typeof api>[1]): Prom
     return await api<T>(path, init);
   } catch (error) {
     if (isApiError(error) && error.status === 401 && typeof window !== "undefined") {
-      window.location.assign("/admin/login?expirou=1");
+      const next = encodeURIComponent(window.location.pathname + window.location.search);
+      window.location.assign(`/admin/login?expirou=1&next=${next}`);
     }
     throw error;
   }

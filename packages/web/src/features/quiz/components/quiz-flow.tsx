@@ -141,7 +141,8 @@ function QuizRunner({
       <QuizHeader
         current={onContact ? total : state.step}
         total={total}
-        label={onContact ? "Quase lá" : `Pergunta ${state.step + 1} de ${total}`}
+        // The question body already says "Pergunta X de N"; the header shows overall progress.
+        label={onContact ? "Quase lá" : `${Math.round((state.step / total) * 100)}% concluído`}
         onBack={state.step > 0 && !submission.isPending ? () => go(state.step - 1) : undefined}
       />
       <main className="mx-auto w-full max-w-2xl flex-1 overflow-x-clip px-5 pt-8 pb-16 sm:pt-14">

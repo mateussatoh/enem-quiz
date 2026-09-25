@@ -5,12 +5,15 @@ import { Logo } from "@/components/common/logo";
 import { PrototypeNotice } from "@/components/common/prototype-notice";
 import { Card } from "@/components/ui/card";
 import { LoginForm } from "@/features/admin/components/login-form";
+import { safeAdminNext } from "@/lib/safe-next";
 import { getAdminSession } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Entrar", robots: { index: false } };
 
-export default async function LoginPage() {
-  if (await getAdminSession()) redirect("/admin");
+export default async function LoginPage({ searchParams }: PageProps<"/admin/login">) {
+  const { next } = await searchParams;
+  if (await getAdminSession())
+    redirect(safeAdminNext(typeof next === "string" ? next : null) as "/admin");
 
   return (
     <main className="flex min-h-dvh items-center justify-center px-5 py-10">

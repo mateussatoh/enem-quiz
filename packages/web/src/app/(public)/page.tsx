@@ -1,4 +1,5 @@
 import { ArrowRight, Clock, ListChecks, Sparkles } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Logo } from "@/components/common/logo";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { getPublicQuiz } from "@/lib/server-api";
 // every minute so marketing's edits to title, subtitle and questions show up without a deploy.
 export const revalidate = 60;
 
-// Used only if the API is unreachable while rendering, so the page never breaks.
+// Used only when the quiz is missing, or the API is unreachable during the build.
 const FALLBACK = {
   title: "Qual é a sua chance real de passar no ENEM?",
   subtitle:
@@ -29,6 +30,14 @@ function Title({ text }: { text: string }) {
       part
     ),
   );
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const quiz = await getPublicQuiz(QUIZ_SLUG);
+  return {
+    title: { absolute: quiz?.title ?? FALLBACK.title },
+    description: quiz?.subtitle ?? FALLBACK.subtitle,
+  };
 }
 
 export default async function LandingPage() {
