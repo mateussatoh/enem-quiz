@@ -38,16 +38,17 @@ pnpm dev:api                # opcional: só a API, standalone em http://localhos
 
 ### Variáveis de ambiente
 
-| Variável                         | Obrigatória   | Descrição                                                                                  |
-| -------------------------------- | ------------- | ------------------------------------------------------------------------------------------ |
-| `DATABASE_URL`                   | sim           | Conexão Postgres                                                                           |
-| `SESSION_SECRET`                 | sim           | Segredo (32+ caracteres) para assinar a sessão do admin e o hash de IP                     |
-| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | só no seed    | Credenciais criadas pelo `pnpm db:seed` (padrão acima)                                     |
-| `SUBMISSION_RATE_LIMIT`          | não           | Leads novos por IP a cada 10 min. Padrão 20; o `.env.example` usa 100 para desenvolvimento |
-| `TEST_DATABASE_URL`              | só nos testes | Banco isolado para os testes de integração da API                                          |
-| `RESEND_API_KEY`                 | não           | Liga o e-mail do diagnóstico. Sem ela, o envio vira um log e o fluxo segue igual           |
-| `EMAIL_FROM`                     | não           | Remetente. O padrão `onboarding@resend.dev` só entrega para o dono da conta Resend         |
-| `APP_URL`                        | não           | URL pública para os links do e-mail. Padrão: origem da requisição                          |
+| Variável                         | Obrigatória   | Descrição                                                                                                                                                                            |
+| -------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `DATABASE_URL`                   | sim           | Conexão Postgres                                                                                                                                                                     |
+| `SESSION_SECRET`                 | sim           | Segredo (32+ caracteres) para assinar a sessão do admin e o hash de IP                                                                                                               |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | só no seed    | Credenciais criadas pelo `pnpm db:seed` (padrão acima)                                                                                                                               |
+| `SUBMISSION_RATE_LIMIT`          | não           | Leads novos por IP a cada 10 min. Padrão 20; o `.env.example` usa 100 para desenvolvimento                                                                                           |
+| `TRUST_PROXY`                    | não           | `true` para confiar em `x-forwarded-for` atrás de um proxy. Na Vercel já é automático; sem proxy (API standalone), o IP vem do socket, porque o header pode ser forjado pelo cliente |
+| `TEST_DATABASE_URL`              | só nos testes | Banco isolado para os testes de integração da API                                                                                                                                    |
+| `RESEND_API_KEY`                 | não           | Liga o e-mail do diagnóstico. Sem ela, o envio vira um log e o fluxo segue igual                                                                                                     |
+| `EMAIL_FROM`                     | não           | Remetente. O padrão `onboarding@resend.dev` só entrega para o dono da conta Resend                                                                                                   |
+| `APP_URL`                        | não           | URL pública para os links do e-mail. Padrão: origem da requisição                                                                                                                    |
 
 ### Testes
 
@@ -76,7 +77,7 @@ packages/
   - `service.ts` é a única porta de acesso ao banco;
   - `routes.ts` só valida, chama o service e serializa;
   - `serialize.ts` define quais campos saem, então nenhuma linha crua do banco vira resposta.
-- **Formato de erro único:** `{ error: { code, message, fields? } }`, com status coerentes (400, 401, 404, 409, 422, 429 e 500).
+- **Formato de erro único:** `{ error: { code, message, fields? } }`, com status coerentes (400, 401, 404, 409, 422, 429 e 500). Corpo JSON malformado também vira 400 nesse formato; 500 fica só para erro inesperado, que é logado.
 - **`web`** fala com a API só pelo contrato REST. As exceções, liberadas explicitamente no ESLint, são a rota que monta o app Hono, a checagem de sessão das páginas do admin e `lib/server-api.ts`, que deixa Server Components chamarem a API em processo (`app.request`), sem acessar o banco.
 
 ### Modelo de dados
@@ -97,15 +98,16 @@ admin_users(email, password_hash)
 
 | Método | Rota                                        | Auth           | Respostas                                             |
 | ------ | ------------------------------------------- | -------------- | ----------------------------------------------------- |
+| GET    | `/api/health`                               | pública        | 200                                                   |
 | GET    | `/api/quizzes/:slug`                        | pública        | 200 (sem os pesos), 404                               |
 | POST   | `/api/quizzes/:slug/submissions`            | pública        | 201, 400, 404, 409 (e-mail repetido em 24h), 422, 429 |
-| GET    | `/api/results/:id`                          | pública (UUID) | 200, 404                                              |
+| GET    | `/api/results/:id`                          | pública (UUID) | 200, 400 (id inválido), 404                           |
 | POST   | `/api/auth/login`                           | pública        | 200, 400, 401                                         |
 | POST   | `/api/auth/logout`                          |                | 204                                                   |
 | GET    | `/api/auth/me`                              | admin          | 200, 401                                              |
 | GET    | `/api/admin/leads?q=&band=&page=&pageSize=` | admin          | 200, 400, 401                                         |
-| GET    | `/api/admin/leads/:id`                      | admin          | 200, 404, 401                                         |
-| GET    | `/api/admin/leads/export.csv?q=&band=`      | admin          | 200 (text/csv), 401                                   |
+| GET    | `/api/admin/leads/:id`                      | admin          | 200, 400 (id inválido), 401, 404                      |
+| GET    | `/api/admin/leads/export.csv?q=&band=`      | admin          | 200 (text/csv), 400, 401                              |
 | GET    | `/api/admin/stats`                          | admin          | 200, 401                                              |
 
 ## Decisões técnicas
@@ -115,7 +117,7 @@ admin_users(email, password_hash)
 - **Pontuação só no servidor.** O cliente envia apenas os ids das alternativas, e os pesos nem chegam ao navegador. O servidor confere se todas as perguntas foram respondidas e se cada alternativa pertence à pergunta (422 quando não), soma os pesos e aplica o limite de 0 a 100.
 - **Proteção contra abuso:**
   - deduplicação por e-mail em 24h (409), sem condição de corrida graças a um advisory lock do Postgres na transação, com teste de dois envios simultâneos. Para o aluno não ficar sem saída, o resultado anterior é reenviado para o e-mail, e nunca devolvido na resposta, já que qualquer um pode digitar qualquer e-mail. O reenvio é limitado a uma vez por hora por lead;
-  - rate limit por IP (429), guardado como hash e não como IP. O limite de 20 leads a cada 10 minutos barra scripts sem bloquear uma escola ou empresa atrás do mesmo IP;
+  - rate limit por IP (429), guardado como hash e não como IP. O limite de 20 leads a cada 10 minutos barra scripts sem bloquear uma escola ou empresa atrás do mesmo IP. O IP só vem de `x-forwarded-for` atrás de um proxy confiável (Vercel ou `TRUST_PROXY`); fora disso vem do socket, para o limite não ser contornado forjando o header;
   - honeypot contra bots;
   - no front, o botão fica bloqueado durante o envio.
 - **Resultado por UUID.** A tela de resultado pode ser recarregada ou compartilhada e não expõe dados de contato, só o primeiro nome.
