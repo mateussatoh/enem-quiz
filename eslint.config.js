@@ -60,7 +60,7 @@ export default tseslint.config(
     rules: { "no-restricted-imports": "off" },
   },
   {
-    files: ["**/scripts/**", "packages/api/src/db/seed.ts", "packages/api/src/db/migrate.ts"],
+    files: ["**/scripts/**", "packages/api/src/db/*.ts"],
     rules: { "no-console": "off" },
   },
 );
