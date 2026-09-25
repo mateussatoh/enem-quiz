@@ -1,0 +1,33 @@
+{
+  "name": "enem-quiz",
+  "private": true,
+  "packageManager": "pnpm@9.9.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm -F @enem-quiz/web dev",
+    "build": "pnpm -F @enem-quiz/web build",
+    "start": "pnpm -F @enem-quiz/web start",
+    "test": "pnpm -r --workspace-concurrency=1 test",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:generate": "pnpm -F @enem-quiz/api db:generate",
+    "db:migrate": "pnpm -F @enem-quiz/api db:migrate",
+    "db:seed": "pnpm -F @enem-quiz/api db:seed",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@eslint/js": "catalog:",
+    "@playwright/test": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-react-hooks": "catalog:",
+    "globals": "catalog:",
+    "prettier": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:"
+  },
+  "type": "module"
+}
