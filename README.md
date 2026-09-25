@@ -2,7 +2,7 @@
 
 Quiz público de diagnóstico para o ENEM com captura de lead, e área interna para o time comercial acompanhar os leads.
 
-- **Deploy:** _URL pública a ser adicionada após o deploy na Vercel_
+- **Deploy:** https://enem-quiz-web.vercel.app (Vercel + Neon Postgres)
 - **Admin:** `/admin` com `admin@assaad.dev` / `Assaad@2026`
 
 ## Como rodar localmente
