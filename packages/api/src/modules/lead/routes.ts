@@ -1,13 +1,16 @@
 import { submissionSchema } from "@enem-quiz/shared/validators";
 import { Hono } from "hono";
 import { z } from "zod";
+import { runInBackground } from "../../core/background";
 import { hashIp } from "../../core/crypto";
+import { sendEmail } from "../../core/email";
 import { env } from "../../core/env";
 import { fail, validate } from "../../core/http";
 import { logEvent } from "../../core/logger";
 import { clientIp } from "../../core/request";
 import { slugParam } from "../quiz/routes";
 import { getActiveQuizBySlug } from "../quiz/service";
+import { renderResultEmail } from "./result-email";
 import { scoreSubmission } from "./scoring";
 import { toSubmissionResult } from "./serialize";
 import { createLead, getLeadWithAnswers, DUPLICATE_WINDOW_HOURS } from "./service";
@@ -70,9 +73,20 @@ export const leadRoutes = new Hono()
       }
 
       logEvent("info", "submission.created", { leadId: created.lead.id, score: scored.score });
-      const lead = await getLeadWithAnswers(created.lead.id);
-      c.header("Location", `/api/results/${created.lead.id}`);
-      return c.json(toSubmissionResult(lead!), 201);
+      const result = toSubmissionResult((await getLeadWithAnswers(created.lead.id))!);
+
+      // The student sees the result right away; the e-mail copy goes out after the response.
+      const resultUrl = `${env().APP_URL ?? new URL(c.req.url).origin}/resultado/${result.resultId}`;
+      runInBackground(c, "email.diagnostic_result", () =>
+        sendEmail({
+          to: submission.lead.email,
+          tag: "diagnostic-result",
+          ...renderResultEmail(result, resultUrl),
+        }),
+      );
+
+      c.header("Location", `/api/results/${result.resultId}`);
+      return c.json(result, 201);
     },
   )
   // The result id is an unguessable UUID that only the submitter receives; the payload carries

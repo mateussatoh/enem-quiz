@@ -5,6 +5,17 @@ const envSchema = z.object({
   SESSION_SECRET: z.string().min(32, { error: "SESSION_SECRET precisa ter 32+ caracteres" }),
   /** Max submissions per IP in a 10 minute window. */
   SUBMISSION_RATE_LIMIT: z.coerce.number().int().positive().default(5),
+  /** Optional: without it, result e-mails are skipped (logged), so local setup needs no account. */
+  RESEND_API_KEY: z
+    .string()
+    .optional()
+    .transform((v) => v || undefined),
+  EMAIL_FROM: z.string().default("Diagnóstico ENEM <onboarding@resend.dev>"),
+  /** Public base URL for links in e-mails. Defaults to the request origin. */
+  APP_URL: z
+    .url()
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 });
 

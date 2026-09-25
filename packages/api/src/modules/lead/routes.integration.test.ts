@@ -1,11 +1,22 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const email = vi.hoisted(() => ({
+  send: vi.fn(async (_message: { to: string; subject: string; tag: string }) => ({
+    sent: true as const,
+    id: "email_1",
+  })),
+}));
+vi.mock("../../core/email", () => ({ sendEmail: email.send }));
 import { app } from "../../app";
 import { answersFor, fetchQuiz, json, post, resetLeads, validLead } from "../../../test/helpers";
 
 const url = "/api/quizzes/enem/submissions";
 
 describe("POST /api/quizzes/:slug/submissions", () => {
-  beforeEach(resetLeads);
+  beforeEach(async () => {
+    email.send.mockClear();
+    await resetLeads();
+  });
 
   it("scores on the server, persists the lead and returns the result", async () => {
     const quiz = await fetchQuiz();
@@ -27,6 +38,13 @@ describe("POST /api/quizzes/:slug/submissions", () => {
       answer: "Já terminei e faço cursinho",
     });
     expect(res.headers.get("location")).toBe(`/api/results/${body.resultId}`);
+
+    await vi.waitFor(() => expect(email.send).toHaveBeenCalledOnce());
+    expect(email.send.mock.calls[0]![0]).toMatchObject({
+      to: "ana@email.com",
+      tag: "diagnostic-result",
+      subject: "Ana, seu diagnóstico ENEM: 100/100 (Reta final)",
+    });
 
     const again = await app.request(`/api/results/${body.resultId}`);
     expect(again.status).toBe(200);
@@ -82,6 +100,7 @@ describe("POST /api/quizzes/:slug/submissions", () => {
     expect((await post(url, { answers, lead: validLead })).status).toBe(201);
     const dup = await post(url, { answers, lead: { ...validLead, email: "ANA@email.com" } });
     expect(dup.status).toBe(409);
+    expect(email.send).toHaveBeenCalledOnce();
     expect((await json(dup)).error.code).toBe("DUPLICATE_LEAD");
   });
 

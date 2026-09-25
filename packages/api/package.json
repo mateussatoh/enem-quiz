@@ -20,6 +20,7 @@
     "hono": "catalog:",
     "jose": "catalog:",
     "postgres": "catalog:",
+    "resend": "^6.29.0",
     "zod": "catalog:"
   },
   "devDependencies": {
