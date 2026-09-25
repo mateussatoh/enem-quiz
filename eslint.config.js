@@ -50,11 +50,14 @@ export default tseslint.config(
     plugins: { "react-hooks": reactHooks },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      // web talks to the API over HTTP only; the single exception is the route that mounts it.
-      ...restrict([
-        ["@enem-quiz/api", "@enem-quiz/api/*", "!@enem-quiz/api/app", "drizzle-orm*", "postgres"],
-      ]),
+      // web talks to the API over HTTP only (exceptions right below).
+      ...restrict([["@enem-quiz/api", "@enem-quiz/api/*", "drizzle-orm*", "postgres"]]),
     },
+  },
+  {
+    // The route that mounts the Hono app, and the server-side session check for admin pages.
+    files: ["packages/web/src/app/api/**/route.ts", "packages/web/src/lib/session.ts"],
+    rules: { "no-restricted-imports": "off" },
   },
   {
     files: ["**/scripts/**", "packages/api/src/db/seed.ts", "packages/api/src/db/migrate.ts"],
