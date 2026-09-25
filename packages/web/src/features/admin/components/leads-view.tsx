@@ -95,7 +95,7 @@ export function LeadsView() {
           />
         </div>
         <div
-          className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0"
+          className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0"
           role="group"
           aria-label="Filtrar por faixa"
         >
