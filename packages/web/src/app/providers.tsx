@@ -1,9 +1,8 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Toaster } from "sonner";
-import { initAnalytics } from "@/lib/analytics";
 import { isApiError } from "@/lib/http";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -21,8 +20,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
         },
       }),
   );
-
-  useEffect(initAnalytics, []);
 
   return (
     <QueryClientProvider client={client}>

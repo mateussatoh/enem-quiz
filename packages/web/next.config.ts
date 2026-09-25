@@ -13,18 +13,6 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@enem-quiz/shared", "@enem-quiz/api"],
   poweredByHeader: false,
   typedRoutes: true,
-  // PostHog reverse proxy: analytics go through our own domain.
-  skipTrailingSlashRedirect: true,
-  async rewrites() {
-    const host = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com";
-    const assets = host
-      .replace("://us.i.", "://us-assets.i.")
-      .replace("://eu.i.", "://eu-assets.i.");
-    return [
-      { source: "/ingest/static/:path*", destination: `${assets}/static/:path*` },
-      { source: "/ingest/:path*", destination: `${host}/:path*` },
-    ];
-  },
 };
 
 export default nextConfig;
