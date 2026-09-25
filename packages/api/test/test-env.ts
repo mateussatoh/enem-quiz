@@ -10,4 +10,6 @@ export function useTestEnv() {
   process.env.ADMIN_EMAIL = "admin@test.dev";
   process.env.ADMIN_PASSWORD = "senha-de-teste";
   process.env.SUBMISSION_RATE_LIMIT = "5";
+  // Tests simulate a proxied deployment and set x-forwarded-for themselves.
+  process.env.TRUST_PROXY = "true";
 }

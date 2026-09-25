@@ -1,5 +1,6 @@
 import { setZodLocalePtBR } from "@enem-quiz/shared/validators";
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { secureHeaders } from "hono/secure-headers";
 import { fail } from "./core/http";
 import { logEvent } from "./core/logger";
@@ -33,6 +34,13 @@ app.route("/admin", leadAdminRoutes);
 app.notFound((c) => fail(c, 404, "NOT_FOUND", "Rota não encontrada"));
 
 app.onError((err, c) => {
+  // Client errors raised by Hono itself (e.g. a malformed JSON body in the validator) keep their
+  // 4xx status and our error shape instead of turning into a 500.
+  if (err instanceof HTTPException && err.status < 500) {
+    return err.status === 400
+      ? fail(c, 400, "VALIDATION", "Corpo da requisição inválido. Envie um JSON válido")
+      : fail(c, err.status, "INTERNAL", err.message || "Requisição inválida");
+  }
   logEvent("error", "http.unhandled", { path: c.req.path, message: err.message, stack: err.stack });
   return fail(c, 500, "INTERNAL", "Erro inesperado. Tente novamente");
 });

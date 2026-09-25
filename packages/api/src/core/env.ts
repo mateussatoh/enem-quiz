@@ -8,6 +8,11 @@ const envSchema = z.object({
    * a school or office sharing one public IP.
    */
   SUBMISSION_RATE_LIMIT: z.coerce.number().int().positive().default(20),
+  /** Trust x-forwarded-for / x-real-ip. Automatic on Vercel; set it behind any other proxy. */
+  TRUST_PROXY: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
   /** Optional: without it, result e-mails are skipped (logged), so local setup needs no account. */
   RESEND_API_KEY: z
     .string()
