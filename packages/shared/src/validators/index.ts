@@ -1,3 +1,4 @@
+import "./locale";
 export * from "./admin";
 export * from "./http";
 export * from "./lead";

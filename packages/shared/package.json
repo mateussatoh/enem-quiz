@@ -2,7 +2,9 @@
   "name": "@enem-quiz/shared",
   "private": true,
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "./src/validators/locale.ts"
+  ],
   "exports": {
     "./domain": "./src/domain/index.ts",
     "./validators": "./src/validators/index.ts",

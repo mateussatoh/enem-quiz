@@ -9,12 +9,20 @@ export function onlyDigits(value: string): string {
   return value.replace(/\D/g, "");
 }
 
-/** Accepts optional +55 prefix. Returns national digits (DDD + number) or null. */
-export function normalizeBrazilianPhone(value: string): string | null {
+/**
+ * National digits typed in any common form: "+55 11 9...", "55 11 9...", "0 11 9..." (trunk
+ * prefix) or plain. Only strips a prefix when what remains still fits a Brazilian number.
+ */
+function nationalDigits(value: string): string {
   let digits = onlyDigits(value);
-  if ((digits.length === 12 || digits.length === 13) && digits.startsWith("55")) {
-    digits = digits.slice(2);
-  }
+  if (digits.length > 11 && digits.startsWith("55")) digits = digits.slice(2);
+  if (digits.length > 10 && digits.startsWith("0")) digits = digits.slice(1);
+  return digits;
+}
+
+/** Accepts optional +55 or leading 0. Returns national digits (DDD + number) or null. */
+export function normalizeBrazilianPhone(value: string): string | null {
+  const digits = nationalDigits(value);
   if (digits.length !== 10 && digits.length !== 11) return null;
   if (!VALID_DDDS.has(Number(digits.slice(0, 2)))) return null;
   // Mobile numbers have 9 digits and start with 9; landlines have 8 and start with 2-5.
@@ -26,7 +34,7 @@ export function normalizeBrazilianPhone(value: string): string | null {
 
 /** Progressive mask for inputs: "(11) 98765-4321" / "(11) 3456-7890". */
 export function formatPhone(value: string): string {
-  const d = onlyDigits(value).slice(0, 11);
+  const d = nationalDigits(value).slice(0, 11);
   if (d.length <= 2) return d.length ? `(${d}` : "";
   const ddd = d.slice(0, 2);
   const rest = d.slice(2);
