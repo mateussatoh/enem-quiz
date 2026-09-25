@@ -32,6 +32,7 @@
   --color-surface-card: var(--surface-card);
   --color-surface-tint: var(--surface-tint);
 
+  --color-logo: var(--logo);
   --color-brand: var(--brand);
   --color-brand-strong: var(--brand-strong);
   --color-brand-soft: var(--brand-soft);
@@ -69,10 +70,12 @@
   --surface-card: #ffffff;
   --surface-tint: #eff0f6;
 
-  --brand: #3b4bd8;
-  --brand-strong: #2c3ab4;
-  --brand-soft: #eceefd;
-  --brand-line: #c9d0fa;
+  /* Logo keeps the official Plataforma Assaad blue; brand is tuned to sit next to it. */
+  --logo: #0021e1;
+  --brand: #2340d6;
+  --brand-strong: #1a30ad;
+  --brand-soft: #eaeefd;
+  --brand-line: #c6d0fa;
 
   --accent: #ffb938;
   --accent-soft: #fff3da;

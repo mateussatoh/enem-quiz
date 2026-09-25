@@ -18,6 +18,8 @@ export const metadata: Metadata = {
   },
   description:
     "Responda 10 perguntas rápidas sobre a sua preparação e receba um diagnóstico personalizado para o ENEM.",
+  // Prototype for a hiring process: keep it out of search results.
+  robots: { index: false, follow: false },
 };
 
 export const viewport: Viewport = { themeColor: "#f7f6f2", width: "device-width", initialScale: 1 };

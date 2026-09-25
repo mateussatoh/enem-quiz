@@ -1,20 +1,20 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { AssaadLogo } from "./assaad-logo";
 
 export function Logo({ className, href = "/" }: { className?: string; href?: "/" | "/admin" }) {
   return (
     <Link
       href={href}
-      className={cn("inline-flex items-center gap-2 font-semibold tracking-tight", className)}
+      aria-label="Diagnóstico ENEM, Plataforma Assaad"
+      className={cn("inline-flex items-center gap-3", className)}
     >
-      <span
-        aria-hidden
-        className="grid size-8 place-items-center rounded-lg bg-brand font-serif text-lg leading-none text-white"
-      >
-        D
-      </span>
-      <span className="text-ink">
-        Diagnóstico <span className="text-brand">ENEM</span>
+      <AssaadLogo className="h-7 sm:h-8" />
+      <span aria-hidden className="h-6 w-px bg-line" />
+      <span className="text-sm leading-tight font-semibold text-ink-soft">
+        Diagnóstico
+        <br />
+        ENEM
       </span>
     </Link>
   );

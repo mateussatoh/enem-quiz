@@ -119,6 +119,7 @@ admin_users(email, password_hash)
   - estados de carregando, vazio e erro em todas as telas;
   - filtros do admin guardados na URL, então dá para compartilhar ou recarregar a lista filtrada;
   - tabela no desktop e cards no celular.
+- **Identidade da Plataforma Assaad:** logo (SVG vetorial) e favicon vêm do site oficial, para o protótipo já parecer produto da casa. Como a página captura dados pessoais, todas as telas públicas e o login exibem o aviso "Protótipo desenvolvido para o processo seletivo da Assaad Educação. Não é um canal oficial", e o site inteiro sai do Google com `noindex` e `robots.txt`.
 - **Design:** tokens semânticos (tinta, superfícies, marca e uma cor por faixa) em Tailwind v4, títulos com serifa editorial e primitivos no estilo shadcn/ui.
 
 ## O que ficou de fora e o que eu faria com mais tempo

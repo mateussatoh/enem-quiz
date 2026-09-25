@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Logo } from "@/components/common/logo";
+import { PrototypeNotice } from "@/components/common/prototype-notice";
 import { Card } from "@/components/ui/card";
 import { LoginForm } from "@/features/admin/components/login-form";
 import { getAdminSession } from "@/lib/session";
@@ -24,6 +25,7 @@ export default async function LoginPage() {
             <LoginForm />
           </Suspense>
         </Card>
+        <PrototypeNotice />
       </div>
     </main>
   );
